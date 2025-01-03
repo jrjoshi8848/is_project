@@ -4,7 +4,7 @@ import Citizenship from './citizenship.js';
 import Form from './form.js';
 import Images from './images.js';
 import OTP from './otp.js';
-import PreviousEducation from './prevEdu.js';
+import PreviousEducation from './prevedu.js';
 import Student from './student.js';
 
 // Associations
@@ -87,4 +87,3 @@ export {
   PreviousEducation,
   Student,
 };
-
