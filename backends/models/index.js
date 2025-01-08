@@ -29,15 +29,15 @@ Citizenship.hasOne(Images, {
   scope: { imageable_type: 'Citizenship' },
 });
 
-Images.belongsTo(Form, {
+Images.belongsTo(BasicDetails, {
   foreignKey: 'imageable_id',
   constraints: false,
-  scope: { imageable_type: 'Form' },
+  scope: { imageable_type: 'BasicDetails' },
 });
-Form.hasOne(Images, {
+BasicDetails.hasOne(Images, {
   foreignKey: 'imageable_id',
   constraints: false,
-  scope: { imageable_type: 'Form' },
+  scope: { imageable_type: 'BasicDetails' },
 });
 
 Images.belongsTo(Student, {

@@ -1,15 +1,31 @@
-// models/citizenshipDetails.js
-
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
 
-const CitizenshipDetails = sequelize.define('CitizenshipDetails', {
-  id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
-  user_id: { type: DataTypes.BIGINT, allowNull: false },
-  citizenshipNumber: { type: DataTypes.STRING, allowNull: false },
-  country: { type: DataTypes.STRING, allowNull: false },
-}, { tableName: 'CitizenshipDetails', timestamps: false });
+const Citizenship = sequelize.define('Citizenship', {
+  id: {
+    type: DataTypes.BIGINT,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  citizenship_number: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  issued_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  issued_district: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+}, {
+  tableName: 'Citizenship',
+  timestamps: false,
+});
 
-
-
-export default CitizenshipDetails;
+export default Citizenship;

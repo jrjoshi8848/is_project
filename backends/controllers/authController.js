@@ -1,30 +1,50 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { User } from '../models/userModel.js';
 import { sendOtpEmail } from '../utils/nodemailer.js';  // OTP sending function
 import Student from '../models/student.js';
 import { generateTokens } from '../utils/jwtUtils.js';
 import RefreshToken from '../models/refreshToken.js';
 import Admin from '../models/admin.js';
+import { validationResult } from 'express-validator';
+import { sendOtpReg } from '../utils/sendOtp.js';
+import OTP from '../models/otp.js';
 
 
 export const loginStudent = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+     const { email, password } = req.body;
 
-    // Check user in the database (Student or Admin)
-    const user = await Student.findOne({ where: { email } });
-    if (!user || !(await user.isValidPassword(password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+  const errors = validationResult(req);
+  if (!email || !password) {
+    return res.status(400).json({message:"Missing Fields"});
+  }
+
+  
+    // Find student by email
+    const student = await Student.findOne({ where: { email } });
+    if (!student) {
+      return res.status(400).json({ message: 'Invalid email' });
     }
 
+    // Compare the entered password with the hashed password
+    const isPasswordValid = await bcrypt.compare(password, student.password);
+    console.log(isPasswordValid)
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Check if student is verified (optional)
+    //if (!student.is_verified) {
+     // return res.status(403).json({ message: 'Account is not verified yet' });
+   // }
+
     // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user);
+    const { accessToken, refreshToken } = generateTokens(student,'student');
 
     // Store refresh token in the database
     await RefreshToken.create({
       token: refreshToken,
-      user_id: user.id,
+      user_id: student.id,
       expires_at: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),  // 7 days
     });
 
@@ -40,6 +60,59 @@ export const loginStudent = async (req, res, next) => {
 
   } catch (error) {
     next(error);
+  }
+};
+
+
+
+export const reqOtp=async (req,res,next)=>{
+try{
+  const {email}=req.body;
+ if(!email){
+  return res.status(400).json({message:"Email required"})
+ }
+ const otp=sendOtpReg(email);
+ console.log(otp)
+ return res.status(200).json({message:"OTP sent successfully"})
+
+}catch(error){
+  next(error);
+}
+};
+
+
+export const resetPass=async (req,res,next)=>{
+  try{
+
+    const {email,otp,newPass}=req.body;
+
+    if(!email||!otp||!newPass){
+      return res.status(400).json({message:"Missing fields"});
+    }
+
+    const user=await Student.findOne({where:{email}}) || await Admin.findOne({where :{email}});
+    if(!user){
+      console.log("user not found")
+      return res.status(400).json({message:"User not found"});
+    }
+
+    const storedOTP=await OTP.findOne({where:{user_id:user.id}})
+    if(!storedOTP){
+      return res.status(400).json({message:"Invalid otp"})
+    }
+    console.log(storedOTP.isValid(otp))
+
+    if(storedOTP.isValid(otp)){
+      const pass=await bcrypt.hash(newPass,10)
+      user.password=pass;
+      await user.save();
+      await storedOTP.setUsed();
+      return res.status(200).json({message:"Password reset successfully"});
+    }
+    return res.status(500).json({message:"Internal server error"})
+
+  }catch(error){
+    next(error)
   }
 };
 

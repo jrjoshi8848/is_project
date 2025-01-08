@@ -4,6 +4,8 @@ import Images from '../models/images.js';
 import { uploadToCloudinary } from '../config/multer.js';
 import { sendOtpReg } from '../utils/sendOtp.js';
 import OTP from '../models/otp.js';
+import { ExpressValidator } from 'express-validator';
+import BasicDetails from '../models/basicDetails.js';
 
 // Password validation (backend)
 const validatePassword = (password) => {
@@ -47,6 +49,11 @@ export const registerStudent = async (req, res, next) => {
 
   try {
     // Validate password strength
+
+    const user = await Student.findOne({ where: { email } });
+    if (user) {
+      return res.status(500).json({ message: 'User already exists' });
+    }
     if (!validatePassword(password)) {
       return res.status(400).json({ message: 'Password must be at least 8 characters long, contain at least one lowercase letter, one uppercase letter, one digit, and one special character' });
     }
@@ -56,6 +63,7 @@ export const registerStudent = async (req, res, next) => {
     //if()
 
     // Create student record
+    console.log(password)
     const newStudent = await Student.create({
       username,
       email,
@@ -109,11 +117,11 @@ export const verifyOtp=async(req,res,next)=>{
       });
     }
 
-    if (storedOTP.otp == otp && storedOTP.isValid()){
+    if (storedOTP.isValid(otp)){
       student.is_verified = true;
       await student.save();
-      storedOTP.isUsed=true;
-      await storedOTP.save()
+      storedOTP.setUsed();
+      //await storedOTP.save()
       res.status(200).json({
         message:'Student verified successfully'
       });
@@ -129,3 +137,94 @@ export const verifyOtp=async(req,res,next)=>{
   }
 
 };
+
+
+// Create or Update Basic Details
+export const fillBasicDetails = async (req, res,next) => {
+  console.log(3)
+  const {
+    first_name,
+    middle_name,
+    last_name,
+    phone,
+    DOB,
+    temporary_address,
+    permanent_address,
+    sex,
+    fathers_name,
+    grandfathers_name,
+    mothers_name,
+    fathers_profession,
+  } = req.body;
+  const profileImage = req.files ? req.files[0] : null;
+  const studentId = req.user.id; // Assuming the student ID is stored in the JWT or session
+  console.log(req.user)
+  // Validate input
+  /*const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }*/
+
+  try {
+    // Check if basic details already exist for the student
+    let basicDetails = await BasicDetails.findOne({ where: { user_id: studentId } });
+
+    if (basicDetails) {
+      // Update existing basic details
+      basicDetails.first_name = first_name;
+      basicDetails.middle_name = middle_name;
+      basicDetails.last_name = last_name;
+      basicDetails.phone = phone;
+      basicDetails.DOB = DOB;
+      basicDetails.temporary_address = temporary_address;
+      basicDetails.permanent_address = permanent_address;
+      basicDetails.sex = sex;
+      basicDetails.fathers_name = fathers_name;
+      basicDetails.grandfathers_name = grandfathers_name;
+      basicDetails.mothers_name = mothers_name;
+      basicDetails.fathers_profession = fathers_profession;
+      await basicDetails.save();
+    } else {
+      // Create new basic details
+      basicDetails = await BasicDetails.create({
+        user_id: studentId,
+        first_name,
+        middle_name,
+        last_name,
+        phone,
+        DOB,
+        temporary_address,
+        permanent_address,
+        sex,
+        fathers_name,
+        grandfathers_name,
+        mothers_name,
+        fathers_profession,
+      });
+    }
+
+    // If a profile picture is provided, associate it
+    if (profileImage) {
+      const cloudinaryResult = await uploadToCloudinary(profileImage.buffer, Date.now().toString());
+      const newImage = await Images.create({  
+        imageable_type: 'BasicDetails',
+        imageable_id: basicDetails.id,
+        url:cloudinaryResult.secure_url, // Assuming you're storing the image file path
+      });
+
+      // Associate the image with BasicDetails
+      basicDetails.imageId = newImage.id;
+      await basicDetails.save();
+    }
+
+    return res.status(200).json({
+      message: 'Basic details saved successfully',
+      data: basicDetails,
+    });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export default fillBasicDetails;

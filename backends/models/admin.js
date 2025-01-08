@@ -2,7 +2,7 @@
 
 import { DataTypes } from 'sequelize';
 import sequelize from '../config/db.js';
-import bcrypt from 'bcryptjs';
+import bcrypt from 'bcrypt';
 
 const Admin = sequelize.define('Admin', {
   id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },

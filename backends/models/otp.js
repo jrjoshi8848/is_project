@@ -12,15 +12,25 @@ const OTP = sequelize.define('OTP', {
 }, { tableName: 'OTP', timestamps: false });
 
 // Method to check if OTP is valid (not used or expired)
-OTP.prototype.isValid = function () {
+OTP.prototype.isValid = function (otp) {
   const now = new Date();
   const expirationTime = new Date(this.created_at);
   expirationTime.setMinutes(expirationTime.getMinutes() + 5);  // OTP expires 5 minutes after creation
 
-  if (this.isUsed || now > expirationTime) {
+  if ((!this.isUsed && now < expirationTime)&& otp==this.otp) {
+    return true;
+  }
+  return false;
+};
+OTP.prototype.setUsed=async function(){
+  try{
+    this.isUsed=true;
+    await this.save()
+    return true;
+  }catch(error){
+    console.log(error);
     return false;
   }
-  return true;
-};
+}
 
 export default OTP;

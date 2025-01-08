@@ -11,6 +11,7 @@ export const authenticate = (req, res, next) => {
   try {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(1)
 
     // Attach user information to the request object
     req.user = {
@@ -18,6 +19,7 @@ export const authenticate = (req, res, next) => {
       email: decoded.email,
       role: decoded.role,  // Pass role for access control
     };
+    console.log(req.user)
 
     next();  // Pass control to the next middleware
   } catch (error) {

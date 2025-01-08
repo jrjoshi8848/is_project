@@ -35,6 +35,7 @@ export const sendOtpReg = async (email) => {
       // If OTP exists, update it
       otpInstance.otp = otp;
       otpInstance.created_at = new Date();
+      otpInstance.isUsed=false;
       await otpInstance.save();
     } else {
       // If OTP does not exist, create a new one
