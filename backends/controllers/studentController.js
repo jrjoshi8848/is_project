@@ -257,12 +257,7 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
         where: { imageable_type: 'Citizenship', imageable_id: citizenship.id },
       });
 
-      if (existingImages.length > 0) {
-        for (const image of existingImages) {
-          await destroyFromCloudinary(image.url); // Delete from Cloudinary
-          await image.destroy(); // Delete from the database
-        }
-      }
+      
     } else {
       // ✅ If citizenship does not exist, create a new one
       citizenship = await Citizenship.create({
@@ -274,6 +269,13 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
       });
     }
 
+    if (transcript) {
+      const existingfront = existingImages.find(image => image.url.includes('front'));
+      if (existingfront) {
+        await destroyFromCloudinary(existingfront.url); 
+        await existingfront.destroy(); 
+      }
+    }
     // ✅ Upload new images to Cloudinary
     if (frontImage) {
       const frontImageResult = await uploadToCloudinary(frontImage.buffer, `citizenship_front_${studentId}`);

@@ -6,28 +6,37 @@ export const getBasicDetails = async (req, res, next) => {
       const studentId = req.user.id;
   
       const basicDetails = await BasicDetails.findOne({
-        where: { user_id: studentId },
-        include: [
-          {
-            model: Images,
-            where: { imageable_type: 'BasicDetails' },
-            required: false, // No error if no images
-          }
-        ],
+        where: { user_id: studentId }
       });
   
       if (!basicDetails) {
         return res.status(404).json({ message: 'Basic details not found for this student.' });
       }
-  
+      const existingImages = await Images.findOne({
+        where: { imageable_type: 'BasicDetails', imageable_id: studentId },
+      });
+
       // Extract image URLs from associated images
-      const imageUrls = basicDetails.Images.map(image => image.url);
+      const imageUrl = existingImages.url;
   
       return res.status(200).json({
         message: 'Basic details fetched successfully.',
         data: {
-          basicDetails: basicDetails,
-          images: imageUrls,
+          id: basicDetails.id,
+          student_id: basicDetails.user_id,
+          role: basicDetails.role,
+          first_name: basicDetails.first_name,
+          middle_name: basicDetails.middle_name,
+          last: basicDetails.last_name,
+          phone: basicDetails.phone,
+          DOB: basicDetails.DOB,
+          temporary_address: basicDetails.temporary_address,
+          permanent_address: basicDetails.permanent_address,
+          sex:basicDetails.sex,
+          grandfathers_name: basicDetails.grandfathers_name,
+          mothers_name:basicDetails.mothers_name,
+          fathers_profession:basicDetails.fathers_profession,
+          image: imageUrl,
         },
       });
     } catch (error) {
@@ -42,8 +51,7 @@ export const getCitizenshipDetails = async (req, res, next) => {
     const studentId = req.user.id;
 
     const citizenshipDetails = await Citizenship.findOne({
-      where: { student_id: studentId },
-      include: [Student], // Optionally include related student data
+      where: { student_id: studentId }
     });
 
     if (!citizenshipDetails) {

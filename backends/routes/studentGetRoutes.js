@@ -1,5 +1,6 @@
 import express from 'express';
-import { getBasicDetails } from '../controllers/studentGetControllers';
+import { getBasicDetails } from '../controllers/controllerstudent.js';
+import { getCitizenshipDetails } from '../controllers/controllerstudent.js';
 
 const router=express.Router();
 

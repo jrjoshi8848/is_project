@@ -21,7 +21,11 @@ export const loginStudent = async (req, res, next) => {
 
   
     // Find student by email
-    const student = await Student.findOne({ where: { email } });
+    const student = await Student.findOne({
+      where: { email },
+      attributes: ['id', 'email', 'password', 'is_verified'],  // Exclude student_id
+    });
+    console.log(student);
     if (!student) {
       return res.status(400).json({ message: 'Invalid email' });
     }
