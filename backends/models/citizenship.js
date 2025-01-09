@@ -23,6 +23,14 @@ const Citizenship = sequelize.define('Citizenship', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  student_id: {
+    type: DataTypes.BIGINT,
+    references: {
+      model: 'Students',  // Ensure it references the 'Students' table
+      key: 'id',
+    },
+    allowNull: false,  // You can adjust whether it is nullable based on your requirements
+  }
 }, {
   tableName: 'Citizenship',
   timestamps: false,

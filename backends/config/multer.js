@@ -13,7 +13,7 @@ cloudinary.config({
 const storage = multer.memoryStorage();
 
 // Flexible file upload with Multer that allows dynamic field names
-const upload = (fieldName, maxCount = 1) => {
+const upload = (fields) => {
   return multer({
     storage,
     limits: { fileSize: 5 * 1024 * 1024 },  // 5MB limit for each file
@@ -27,7 +27,7 @@ const upload = (fieldName, maxCount = 1) => {
         return cb(new Error('Only image files are allowed'), false); // Reject the file
       }
     },
-  }).array(fieldName, maxCount); // Multiple images upload based on maxCount
+  }).fields(fields); // Multiple file upload with different field names
 };
 
 // Cloudinary upload function
@@ -46,4 +46,22 @@ const uploadToCloudinary = (fileBuffer, filename) => {
   });
 };
 
-export { upload, uploadToCloudinary };
+// Cloudinary delete function
+const destroyFromCloudinary = async (imageUrl) => {
+  try {
+    // Extract the public_id from the URL (e.g., https://res.cloudinary.com/demo/image/upload/v1618888888/test_image.jpg)
+    const publicId = imageUrl.split('/').pop().split('.')[0];
+
+    // Use Cloudinary's `destroy` method to delete the image
+    const result = await cloudinaryV2.uploader.destroy(publicId);
+    console.log(`Deleted image with public_id: ${publicId}`);
+    return result;
+  } catch (error) {
+    console.error('Error deleting image from Cloudinary:', error);
+    throw error;
+  }
+};
+
+// Export all functions
+export { upload, uploadToCloudinary, destroyFromCloudinary };
+
