@@ -3,3 +3,7 @@
 node_modules/
 
 frontend/node_modules
+
+backends/config/config.json
+
+instruct.md
