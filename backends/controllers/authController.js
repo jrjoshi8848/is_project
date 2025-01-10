@@ -84,6 +84,21 @@ try{
 }
 };
 
+export const reqOtpWithId=async (req,res,next)=>{
+  try{
+   const email = req.user.email;
+
+   const user = await Student.findOne({ where: {email } }) || await Admin.findOne({ where: { email } });
+
+   const otp=sendOtpReg(user.email);
+   console.log(otp)
+   return res.status(200).json({message:"OTP sent successfully"})
+  
+  }catch(error){
+    next(error);
+  }
+  };
+
 
 export const resetPass=async (req,res,next)=>{
   try{
@@ -91,6 +106,44 @@ export const resetPass=async (req,res,next)=>{
     const {email,otp,newPass}=req.body;
 
     if(!email||!otp||!newPass){
+      return res.status(400).json({message:"Missing fields"});
+    }
+
+    const user=await Student.findOne({where:{email}}) || await Admin.findOne({where :{email}});
+    if(!user){
+      console.log("user not found")
+      return res.status(400).json({message:"User not found"});
+    }
+
+    const storedOTP=await OTP.findOne({where:{user_id:user.id}})
+    if(!storedOTP){
+      return res.status(400).json({message:"Invalid otp"})
+    }
+    console.log(storedOTP.isValid(otp))
+
+    if(storedOTP.isValid(otp)){
+      const pass=await bcrypt.hash(newPass,10)
+      user.password=pass;
+      await user.save();
+      await storedOTP.setUsed();
+      return res.status(200).json({message:"Password reset successfully"});
+    }
+    return res.status(500).json({message:"Internal server error"})
+
+  }catch(error){
+    next(error)
+  }
+};
+
+
+export const resetPassWithId=async (req,res,next)=>{
+  try{
+
+    const email = req.user.email;
+
+    const {otp,newPass}=req.body;
+
+    if(!otp||!newPass){
       return res.status(400).json({message:"Missing fields"});
     }
 

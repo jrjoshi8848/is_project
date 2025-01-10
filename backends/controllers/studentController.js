@@ -253,7 +253,7 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
       citizenship.issued_district = issued_district;
       await citizenship.save();
 
-      const existingImages = await Images.findAll({
+      var existingImages = await Images.findAll({
         where: { imageable_type: 'Citizenship', imageable_id: citizenship.id },
       });
 
@@ -269,24 +269,25 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
       });
     }
 
-    if (transcript) {
-      const existingfront = existingImages.find(image => image.url.includes('front'));
+    if (frontImage) {
+      const existingfront = existingImages.find(image => image.url.includes('citizenship_front'));
       if (existingfront) {
         await destroyFromCloudinary(existingfront.url); 
         await existingfront.destroy(); 
-      }
-    }
-    // ✅ Upload new images to Cloudinary
-    if (frontImage) {
       const frontImageResult = await uploadToCloudinary(frontImage.buffer, `citizenship_front_${studentId}`);
       await Images.create({
         imageable_type: 'Citizenship',
         imageable_id: citizenship.id,
         url: frontImageResult.secure_url,
       });
-    }
+    }};
+
 
     if (backImage) {
+      const existingback = existingImages.find(image => image.url.includes('citizenship_back'));
+      if (existingback) {
+        await destroyFromCloudinary(existingback.url); 
+        await existingback.destroy();
       const backImageResult = await uploadToCloudinary(backImage.buffer, `citizenship_back_${studentId}`);
       await Images.create({
         imageable_type: 'Citizenship',
@@ -294,6 +295,7 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
         url: backImageResult.secure_url,
       });
     }
+  };
 
     // ✅ Return response
     return res.status(200).json({

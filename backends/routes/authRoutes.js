@@ -1,14 +1,16 @@
 import express from 'express';
 import { csrfProtection } from '../middlewares/csrfProtection.js';  // CSRF middleware
-import { loginStudent, adminLogin, refreshAccessToken,reqOtp,resetPass } from '../controllers/authController.js';  // Import controller methods
+import { loginStudent, adminLogin, refreshAccessToken,reqOtp,resetPass,reqOtpWithId,resetPassWithId } from '../controllers/authController.js';  // Import controller methods
 import { authenticate } from '../middlewares/authenticate.js';  // JWT authentication
-import { authorize } from '../middlewares/authorize.js';  // Role-based authorization
+//import { authorize } from '../middlewares/authorize.js';  // Role-based authorization
 
 const router = express.Router();
 
 router.post('/refresh', refreshAccessToken);
 router.post('/reqotp', reqOtp);
+router.post('/reqotpwithid',authenticate, reqOtpWithId);
 router.post('/resetpass', resetPass);
+router.post('/resetpasswithid',authenticate, resetPassWithId);
 
 // Route for student login
 router.post('/students/login', loginStudent);

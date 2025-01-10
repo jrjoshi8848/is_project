@@ -16,5 +16,16 @@ const PreviousEducation = sequelize.define('PreviousEducation', {
   cgpa: { type: DataTypes.STRING, allowNull: false },
 }, { tableName: 'PreviousEducation', timestamps: false });
 
+PreviousEducation.beforeCreate(async (prevEdu, options) => {
+  const count = await PreviousEducation.count({
+    where: { student_id: prevEdu.student_id },
+  });
+
+  if (count >= 2) {
+    console.log("More than 2 prev educations are not allowed");
+    throw new Error('A student can only have up to 2 previous education records.');
+  }
+});
+
 
 export default PreviousEducation;
