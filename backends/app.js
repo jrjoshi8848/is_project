@@ -32,7 +32,7 @@ app.get('/csrf', csrfProtection, (req, res) => {
     res.status(200).json({ message: 'CSRF token set successfully' });
   });
 app.use('/students',studentRoutes);
-app.use('/admin',authenticate,studentGetRoutes);
+app.use('/admin',authenticate,adminRoutes);
 app.use('/students',authenticate,studentGetRoutes);
 app.use('/auth',upload([]),authRoutes);
 

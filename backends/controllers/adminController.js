@@ -178,3 +178,71 @@ export const getFullFormDetailswithId = async (req, res, next) => {
     next(error);
   }
 };
+
+
+export const getFilteredForms = async (req, res, next) => {
+  try {
+    const filters = req.body;
+
+    // Build form filters dynamically
+    const formFilters = {};
+    const filterFields = [
+      'women',
+      'madheshi',
+      'dalit',
+      'adibashi_janjati',
+      'backward_region',
+      'disabled',
+      'district_quota',
+      'district',
+      'staff_quota',
+      'voucher_no'
+    ];
+    filterFields.forEach(field => {
+      if (filters[field] !== undefined) {
+        formFilters[field] = filters[field];
+      }
+    });
+
+    // Query the Form model with filters and include BasicDetails
+    const forms = await Form.findAll({
+      where: formFilters,
+      include: {
+        model: BasicDetails,
+        attributes: ['first_name', 'middle_name', 'last_name', 'phone'],
+      },
+    });
+
+    if (forms.length === 0) {
+      return res.status(404).json({ message: 'No forms found matching the criteria.' });
+    }
+
+    // Transform the response to the desired format
+    const responseData = forms.map(form => {
+      const basicDetails = form.BasicDetail;
+
+      // Construct the full name
+      const fullName = [
+        basicDetails.first_name,
+        basicDetails.middle_name || '',
+        basicDetails.last_name
+      ].filter(Boolean).join(' ');
+
+      return {
+        id: form.id,
+        name: fullName,
+        phone: basicDetails.phone,
+        status: form.status,
+        updated_at: form.updated_at,
+      };
+    });
+
+    return res.status(200).json({
+      message: 'Form details fetched successfully.',
+      data: responseData,
+    });
+  } catch (error) {
+    console.error('Error fetching forms:', error);
+    next(error);
+  }
+};
