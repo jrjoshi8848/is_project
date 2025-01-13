@@ -25,7 +25,7 @@ export const loginStudent = async (req, res, next) => {
       where: { email },
       attributes: ['id', 'email', 'password', 'is_verified'],  // Exclude student_id
     });
-    console.log(student);
+    //console.log(student);
     if (!student) {
       return res.status(400).json({ message: 'Invalid email' });
     }
@@ -75,7 +75,7 @@ try{
  if(!email){
   return res.status(400).json({message:"Email required"})
  }
- const otp=sendOtpReg(email);
+ const otp=await sendOtpReg(email);
  console.log(otp)
  return res.status(200).json({message:"OTP sent successfully"})
 
@@ -87,11 +87,10 @@ try{
 export const reqOtpWithId=async (req,res,next)=>{
   try{
    const email = req.user.email;
-
+    console.log(1)
    const user = await Student.findOne({ where: {email } }) || await Admin.findOne({ where: { email } });
 
-   const otp=sendOtpReg(user.email);
-   console.log(otp)
+   const otp=await sendOtpReg(user.email);
    return res.status(200).json({message:"OTP sent successfully"})
   
   }catch(error){

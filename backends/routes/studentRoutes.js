@@ -8,8 +8,9 @@ const router = express.Router();
 
 // POST route for registering the student with image upload
 // No need to explicitly add csrfProtection if it's globally applied
-router.post('/register', upload('profile',1), registerStudent);
-router.get('/checkusername',upload() , checkUsername);
+router.post('/register', upload([
+  { name: 'profile', maxCount: 1 }
+]), registerStudent);
 router.post('/verifyAccount',upload() , verifyOtp);
 
 router.post('/basicdetails',authenticate,authorize('student'),

@@ -48,12 +48,12 @@ export const checkUsername = async (req, res, next) => {
 
 export const registerStudent = async (req, res, next) => {
   const { username, email, password } = req.body;
-  const profileImage = req.files ? req.files[0] : null;
+  const profileImage = req.files.profile ? req.files.profile[0] : null;
 
   try {
     // Validate password strength
 
-    const user = await Student.findOne({ where: { email } });
+    const user = await Student.findOne({ where: { email } })||await Student.findOne({ where: { username:username } });
     if (user) {
       return res.status(500).json({ message: 'User already exists' });
     }
