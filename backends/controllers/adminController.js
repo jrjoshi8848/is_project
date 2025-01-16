@@ -73,7 +73,7 @@ export const verifyAdminOTP = async (req, res) => {
       maxAge: 10 * 24 * 60 * 60 * 1000,  // 7 days
     });
 
-    return res.status(200).json({ accessToken });
+    return res.status(200).json({message:"Logged in Successfully",role:"Admin", accessToken });
     }
 
    

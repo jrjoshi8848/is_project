@@ -37,10 +37,10 @@ export const loginStudent = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    // Check if student is verified (optional)
+     //Check if student is verified (optional)
     //if (!student.is_verified) {
-     // return res.status(403).json({ message: 'Account is not verified yet' });
-   // }
+      //return res.status(403).json({ message: 'Account is not verified yet' });
+    //}
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(student,'student');
@@ -54,13 +54,14 @@ export const loginStudent = async (req, res, next) => {
 
     // Send tokens to the client
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: false,
+      httpOnly: true,
       secure: false,
-      sameSite: 'Lax',
+      sameSite: 'Strict',
       maxAge: 10 * 24 * 60 * 60 * 1000,  // 7 days
     });
+    const role="student";
 
-    return res.status(200).json({ accessToken });
+    return res.status(200).json({ message:"logged in successfully",role,accessToken });
 
   } catch (error) {
     next(error);
