@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import apiClient from '../services/apiClient';
 import { useNavigate } from 'react-router-dom';
-import Notification from '../components/common/Notification'; // Import the reusable Notification component
+//import Notification from '../components/common/Notification'; // Import the reusable Notification component
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -21,7 +21,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const endpoint = isAdmin ? 'auth/admin/login' : 'auth/student/login';
+      const endpoint = isAdmin ? 'auth/admin/login' : 'auth/students/login';
       const response = await apiClient.post(endpoint, { email, password });
 
       if (isAdmin && response.data.message === 'OTP sent to admin email') {
