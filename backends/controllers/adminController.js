@@ -19,11 +19,11 @@ export const loginAdmin = async (req, res) => {
 
     // Step 1: Generate and send OTP to the admin
     const otp = await sendOtpReg(email);
-    if (otp) {
+    console.log(otp)
+    if (otp.success) {
       return res.status(200).json({ message: 'OTP sent successfully. Please enter the OTP to proceed.' });
     }
-
-    res.status(500).json({ message: 'Error sending OTP' });
+    else throw new Error(otp.error)
   } catch (error) {
     res.status(500).json({ message: 'Error logging in admin', error });
   }
@@ -36,9 +36,7 @@ export const verifyAdminOTP = async (req, res) => {
   try {
     // Find admin by email
     const user = await Admin.findOne({ where: { email} });
-    if (!user) {
-      return res.status(404).json({ message: 'Admin not found' });
-    }
+
 
     if(!user){
       console.log('User not found');
@@ -57,7 +55,7 @@ export const verifyAdminOTP = async (req, res) => {
     if (storedOTP.isValid(otp)){
       storedOTP.setUsed();
       const { accessToken, refreshToken } = generateTokens(user,'Admin');
-
+      console.log(refreshToken)
     // Store refresh token in the database
     await RefreshToken.create({
       token: refreshToken,
@@ -67,7 +65,7 @@ export const verifyAdminOTP = async (req, res) => {
 
     // Send tokens to the client
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: false,
+      httpOnly: true,
       secure: false,
       sameSite: 'Lax',
       maxAge: 10 * 24 * 60 * 60 * 1000,  // 7 days

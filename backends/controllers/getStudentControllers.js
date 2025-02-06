@@ -27,7 +27,7 @@ export const getBasicDetails = async (req, res, next) => {
           role: basicDetails.role,
           first_name: basicDetails.first_name,
           middle_name: basicDetails.middle_name,
-          last: basicDetails.last_name,
+          last_name: basicDetails.last_name,
           phone: basicDetails.phone,
           DOB: basicDetails.DOB,
           temporary_address: basicDetails.temporary_address,
@@ -216,4 +216,3 @@ export const getFullFormDetails = async (req, res, next) => {
     next(error);
   }
 };
-

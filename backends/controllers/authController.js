@@ -8,6 +8,7 @@ import Admin from '../models/admin.js';
 import { validationResult } from 'express-validator';
 import { sendOtpReg } from '../utils/sendOtp.js';
 import OTP from '../models/otp.js';
+import { Images } from '../models/index.js';
 
 
 export const loginStudent = async (req, res, next) => {
@@ -37,10 +38,10 @@ export const loginStudent = async (req, res, next) => {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-     //Check if student is verified (optional)
-    //if (!student.is_verified) {
-      //return res.status(403).json({ message: 'Account is not verified yet' });
-    //}
+    // Check if student is verified (optional)
+    if (!student.is_verified) {
+      return res.status(200).json({ message: 'Account is not verified yet' });
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = generateTokens(student,'student');
@@ -57,11 +58,18 @@ export const loginStudent = async (req, res, next) => {
       httpOnly: true,
       secure: false,
       sameSite: 'Strict',
-      maxAge: 10 * 24 * 60 * 60 * 1000,  // 7 days
+      maxAge: 2 * 24 * 60 * 60 * 1000,  // 7 days
     });
     const role="student";
 
-    return res.status(200).json({ message:"logged in successfully",role,accessToken });
+    res.cookie('Authorization', accessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'Strict',
+      maxAge: 15 * 60 * 1000,  // 15 mins
+    });
+
+    return res.status(200).json({ message:"logged in successfully",role,accessToken,is_verified:student.is_verified });
 
   } catch (error) {
     next(error);
@@ -78,7 +86,11 @@ try{
  }
  const otp=await sendOtpReg(email);
  console.log(otp)
- return res.status(200).json({message:"OTP sent successfully"})
+ if(otp.success){
+  return res.status(200).json({message:"OTP sent successfully"})
+ }
+ else
+  throw new Error(otp.error);
 
 }catch(error){
   next(error);
@@ -88,11 +100,17 @@ try{
 export const reqOtpWithId=async (req,res,next)=>{
   try{
    const email = req.user.email;
+   console.log(req.user)
     console.log(1)
    const user = await Student.findOne({ where: {email } }) || await Admin.findOne({ where: { email } });
 
    const otp=await sendOtpReg(user.email);
-   return res.status(200).json({message:"OTP sent successfully"})
+   console.log(otp)
+   if(otp.success){
+    return res.status(200).json({message:"OTP sent successfully"})
+   }
+   else throw new Error('Error while sending otp.')
+   
   
   }catch(error){
     next(error);
@@ -140,6 +158,7 @@ export const resetPassWithId=async (req,res,next)=>{
   try{
 
     const email = req.user.email;
+    console.log(req.user)
 
     const {otp,newPass}=req.body;
 
@@ -201,8 +220,14 @@ export const refreshAccessToken = async (req, res, next) => {
         process.env.JWT_SECRET,
         { expiresIn: '10h' }
       );
+      res.cookie('Authorization', newAccessToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Strict',
+        maxAge: 15 * 60 * 1000,  // 15 mins
+      });
 
-      return res.status(200).json({ accessToken: newAccessToken });
+      return res.status(200).json({message:"Refreshed successfully"});
     });
 
   } catch (error) {
@@ -215,7 +240,7 @@ export const refreshAccessToken = async (req, res, next) => {
 
 
 // Controller for admin login (with OTP logic)
-export const adminLogin = async (req, res, next) => {
+/*export const adminLogin = async (req, res, next) => {
   const { email, password, otpCode } = req.body;
 
   try {
@@ -244,8 +269,72 @@ export const adminLogin = async (req, res, next) => {
     });
 
     res.cookie('jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'Strict' });
+    res.cookie('jwt', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'Strict' });
     res.status(200).json({ message: 'Admin logged in successfully', token });
   } catch (error) {
     next(error);
+  }
+};*/
+
+export const fetchProfile = async (req, res, next) => {
+  try {
+    const user = req.user; // Extract user details from middleware
+
+    if (!user || !user.id || !user.role) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Fetch profile image using user ID and role as imageable_type
+    const image = await Images.findOne({
+      where: { 
+        imageable_id: user.id, 
+        imageable_type: user.role,
+      },
+    });
+
+    const profileImage = image ? image.url : null; // Default if no image
+
+    res.status(200).json({
+      username: user.username,
+      profileImage:profileImage,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+export const logout = async (req, res) => {
+  try {
+    // Get refresh token from cookies
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'No refresh token provided' });
+    }
+
+    // Verify the refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);  // Using the same secret as in login
+
+    // Delete the refresh token from the database
+    await RefreshToken.destroy({
+      where: { token: refreshToken, user_id: decoded.id },
+    });
+
+    // Clear the cookies from the response
+    res.clearCookie('Authorization', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+    });
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict',
+    });
+
+    return res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { useNotification } from '.../context/NotificationContext.js';  // Import the context
+import { useNotification } from '../../context/NotificationContext';  // Import the context
 
-const Notification = () => {
+const NotificationMessage = () => {
   const { notification, hideNotification } = useNotification();
   const { type, message } = notification || {};
 
@@ -45,4 +45,4 @@ const Notification = () => {
   );
 };
 
-export default Notification;
+export default NotificationMessage;

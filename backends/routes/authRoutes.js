@@ -1,6 +1,6 @@
 import express from 'express';
 import { csrfProtection } from '../middlewares/csrfProtection.js';  // CSRF middleware
-import { loginStudent, adminLogin, refreshAccessToken,reqOtp,resetPass,reqOtpWithId,resetPassWithId } from '../controllers/authController.js';  // Import controller methods
+import { loginStudent,  refreshAccessToken,reqOtp,resetPass,reqOtpWithId,resetPassWithId,fetchProfile,logout } from '../controllers/authController.js';  // Import controller methods
 import { authenticate } from '../middlewares/authenticate.js';  // JWT authentication
 import { checkUsername } from '../controllers/studentController.js';
 import { upload } from '../config/multer.js';
@@ -14,6 +14,8 @@ router.post('/reqotp', reqOtp);
 router.post('/reqotpwithid',authenticate, reqOtpWithId);
 router.post('/resetpass', resetPass);
 router.post('/resetpasswithid',authenticate, resetPassWithId);
+router.post('/logout', logout);
+
 
 router.get('/checkusername',upload() , checkUsername);
 
@@ -25,6 +27,8 @@ router.post('/students/login', loginStudent);
 // Route for admin login (includes OTP verification)
 router.post('/admin/login', loginAdmin);
 router.post('/admin/otp', verifyAdminOTP);
+
+router.get('/get-profile',authenticate, fetchProfile);
 
 // Route for CSRF token setup (to set up CSRF cookie)
 router.get('/csrf-token', csrfProtection, (req, res) => {

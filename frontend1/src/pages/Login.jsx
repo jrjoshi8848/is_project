@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import useAuthStore from '../store/authStore';
 import apiClient from '../services/apiClient';
 import { useNavigate } from 'react-router-dom';
-//import Notification from '../components/common/Notification'; // Import the reusable Notification component
+import NotificationMessage from '../components/common/NotificationMessage.jsx'; // Import the reusable Notification component
+import { useNotification } from "../context/NotificationContext";
+import { ToastContainer, toast } from 'react-toastify';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,8 +15,9 @@ const Login = () => {
   const [isAdmin, setIsAdmin] = useState(false);  // Check if Admin or Student
   const [isOtpStep, setIsOtpStep] = useState(false);  // If OTP is required for Admin login
   const { setAuth } = useAuthStore();
+  const [noti, setNotification] = useState(null);  // For notification
   const navigate = useNavigate();
-  const [notification, setNotification] = useState(null);  // For notification
+  const { showNotification } = useNotification();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -23,21 +26,34 @@ const Login = () => {
     try {
       const endpoint = isAdmin ? 'auth/admin/login' : 'auth/students/login';
       const response = await apiClient.post(endpoint, { email, password });
-
-      if (isAdmin && response.data.message === 'OTP sent to admin email') {
+      console.log(response.data)
+      if (isAdmin && response.status === 200) {
         setIsOtpStep(true);  // Show OTP form after password verification
-        setNotification({ type: 'success', message: 'OTP sent to admin email' });
+        showNotification('success',  'OTP sent to admin email' );
         setError('');
         return;
       }
 
-      // Store the token and navigate for student login
-      setAuth(isAdmin ? 'admin' : 'student', response.data.accessToken);
+      
+      console.log("Logged in")
+      if(!isAdmin && response.status===200 && response.data?.message === 'Account is not verified yet'){
+        const resp = await apiClient.post("/auth/reqotp", { email });
+        if(resp.status===200){
+          setNotification({ type: 'success', message: 'Verify  Your Account' });
+          navigate("/verify-account", { state: { email } });
+        }
+        else throw new Error('Failed to send OTP for account verification')
+      }
+      if(!isAdmin && response.status==200 && response.data.is_verified){
+      setAuth('student');
       setNotification({ type: 'success', message: 'Login successful!' });
-      navigate(isAdmin ? '/admin/dashboard' : '/student/dashboard');
+      toast(response.data?.message || 'Login successful!')
+      navigate('/student/dashboard');
+      }
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed');
-      setNotification({ type: 'error', message: error.response?.data?.message || 'Login failed' });
+      showNotification('error', error.response?.data?.message || 'Login failed' );
+      toast(error.response?.data?.message || 'Login failed' )
     } finally {
       setLoading(false);
     }
@@ -48,13 +64,18 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await apiClient.post('/admin/verify-otp', { email, otp });
-      setAuth('admin', response.data.accessToken);
-      setNotification({ type: 'success', message: 'Admin logged in successfully' });
-      navigate('/admin/dashboard');
+      const response = await apiClient.post('/auth/admin/otp', { email, otp });
+      if(response.status==200)
+      {
+        console.log(response.data)
+        setAuth('admin');
+        setNotification({ type: 'success', message: 'Admin logged in successfully' });
+        navigate('/admin/dashboard');
+      }
     } catch (error) {
       setError(error.response?.data?.message || 'OTP verification failed');
       setNotification({ type: 'error', message: error.response?.data?.message || 'OTP verification failed' });
+      toast(error.response?.data?.message)
     } finally {
       setLoading(false);
     }
@@ -63,10 +84,11 @@ const Login = () => {
   return (
     <div className="login-container flex flex-col items-center justify-center min-h-screen bg-gray-100">
       {/* Notification */}
-      {notification && (
-        <Notification
-          type={notification.type}
-          message={notification.message}
+      <ToastContainer/>
+      {noti && (
+        <NotificationMessage
+          type={noti.type}
+          message={noti.message}
           onClose={() => setNotification(null)} // Optional callback to reset notification state
         />
       )}
@@ -114,8 +136,8 @@ const Login = () => {
   );
 };
 
-// Separate component for the login form (email and password)
 const LoginForm = ({ email, setEmail, password, setPassword, loading, handleLogin }) => {
+  const navigate = useNavigate();
   return (
     <form onSubmit={handleLogin}>
       <div className="mb-4">
@@ -129,7 +151,7 @@ const LoginForm = ({ email, setEmail, password, setPassword, loading, handleLogi
         />
       </div>
 
-      <div className="mb-4">
+      <div className="mb-2">
         <label className="block text-sm font-medium text-gray-700">Password</label>
         <input
           type="password"
@@ -140,16 +162,38 @@ const LoginForm = ({ email, setEmail, password, setPassword, loading, handleLogi
         />
       </div>
 
+      <div className="flex justify-between items-center text-sm mb-4">
+        <button
+          type="button"
+          className="text-blue-600 hover:underline"
+          onClick={() => navigate('/forget-password')}
+        >
+          Forgot Password?
+        </button>
+      </div>
+
       <button
         type="submit"
         className="w-full py-2 px-4 bg-blue-600 text-white font-medium rounded hover:bg-blue-700"
-        disabled={loading}  // Disable button while loading
+        disabled={loading}
       >
         {loading ? 'Logging in...' : 'Login'}
       </button>
+
+      <div className="mt-4 text-sm text-center">
+        Don't have an account?{' '}
+        <button
+          type="button"
+          className="text-blue-600 hover:underline"
+          onClick={() => navigate('/register')}
+        >
+          Register
+        </button>
+      </div>
     </form>
   );
 };
+
 
 // Separate component for OTP form (after email/password for admin)
 const OtpForm = ({ otp, setOtp, loading, handleOtpVerification }) => {

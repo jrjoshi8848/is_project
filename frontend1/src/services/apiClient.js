@@ -2,10 +2,11 @@ import axios from 'axios';
 import useAuthStore from '../store/authStore';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:5001', // replace with actual API base URL
+  baseURL: 'http://localhost:5001', // Replace with actual API base URL
+  withCredentials: true, // Ensure credentials (cookies) are sent with requests
 });
 
-let isRefreshing = false; // Flag to track refresh attempt in progress
+let isRefreshing = false; // Prevent multiple refresh attempts
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -18,13 +19,17 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshResponse = await apiClient.post('/auth/refresh'); // Refresh token endpoint
-        const { accessToken } = refreshResponse.data; // Assuming data contains access token
+        // Send refresh request to get a new access token (if needed)
+        const refreshResponse = await apiClient.post('/auth/refresh'); // Assuming this endpoint just returns a message
 
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        // In case we do need to update the access token somehow, add logic here (e.g., if you get the token from another response)
+        // Since your backend is only sending a message now, you might want to handle that accordingly (e.g., logging, etc.)
+        console.log('Refresh successful: ', refreshResponse.data.message);
+
+        // We don't need to update the access token here since it's handled via cookies
         isRefreshing = false;
 
-        return apiClient.request(originalRequest); // Retry original request with new token
+        return apiClient.request(originalRequest); // Retry original request
       } catch (err) {
         clearAuth();
         window.location.href = '/login'; // Redirect to login on failure

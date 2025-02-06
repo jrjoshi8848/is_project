@@ -88,12 +88,16 @@ export const registerStudent = async (req, res, next) => {
       await newStudent.save();
     }
 
-    sendOtpReg(email);
+    const otp=sendOtpReg(email);
 
-    res.status(201).json({
-      message: 'Student registered successfully & otp sent',
-      student: newStudent,
-    });
+    if(otp.success){
+      res.status(201).json({
+        message: 'Student registered successfully & otp sent',
+        student: newStudent,
+      });
+    }
+    else throw new Error(otp.error)
+    
   } catch (error) {
     next(error);  // Pass error to the global error handler
   }
@@ -102,6 +106,7 @@ export const registerStudent = async (req, res, next) => {
 export const verifyOtp=async(req,res,next)=>{
   try{
     const {email,otp}=req.body;
+    console.log(req.body)
 
     const student=await Student.findOne({where:{email:email}});
 
