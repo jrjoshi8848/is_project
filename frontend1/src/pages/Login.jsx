@@ -17,7 +17,7 @@ const Login = () => {
   const { setAuth } = useAuthStore();
   const [noti, setNotification] = useState(null);  // For notification
   const navigate = useNavigate();
-  const { showNotification } = useNotification();
+  //const { showNotification } = useNotification();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -52,7 +52,7 @@ const Login = () => {
       }
     } catch (error) {
       setError(error.response?.data?.message || 'Login failed');
-      showNotification('error', error.response?.data?.message || 'Login failed' );
+      //showNotification('error', error.response?.data?.message || 'Login failed' );
       toast(error.response?.data?.message || 'Login failed' )
     } finally {
       setLoading(false);

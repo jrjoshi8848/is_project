@@ -4,6 +4,7 @@ import useAuthStore from '../store/authStore';
 
 const ProtectedRoute = ({ allowedRoles }) => {
   const { isAuthenticated, role } = useAuthStore.getState();
+  console.log({ isAuthenticated, role })
 
   // If not authenticated or role is not allowed, redirect to login
   if (!isAuthenticated) {

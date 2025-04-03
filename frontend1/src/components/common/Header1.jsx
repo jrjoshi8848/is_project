@@ -82,11 +82,10 @@ const Header = () => {
   };
 
   return (
-    <div>
-     <ToastContainer/>
-    <div className="flex justify-between w-full items-center navbar bg-base-100">
-  
-  <div >
+    <header className="flex justify-between w-full items-center bg-white p-4 shadow-md top-0 left-0 relative z-0">
+      {/* Left Side: Logo/Text */}
+      <ToastContainer/>
+      <div className="absolute">
       <button
     onClick={handleNavigate}
     disabled={isDashboard} 
@@ -96,25 +95,22 @@ const Header = () => {
     FWU Engineering
   </button>
   </div>
-  <div className="flex-none">
-    <div className="dropdown dropdown-end">
-      
-      
-    </div>
-    <div className="dropdown dropdown-end">
-      <div tabIndex={0} role="button" className="btn btn-ghost btn-circle avatar">
-        <div className="w-10 rounded-full">
+
+      {/* Right Side: Profile Image & Dropdown */}
+      <div className="relative">
+        {/* Profile Image */}
         <img
           src={profileImage}
           alt="Profile"
           className="w-10 h-10 rounded-full cursor-pointer border border-gray-300"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         />
-        </div>
-      </div>
-      <ul
-        tabIndex={0}
-        className="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
-        <li>
+
+        {/* Dropdown Menu */}
+        {isDropdownOpen && (
+          <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md border border-gray-200">
+            <ul className="py-2">
+              <li>
                 <button
                   className="block px-4 py-2 hover:bg-gray-100"
                   onClick={requestOtp}
@@ -123,19 +119,19 @@ const Header = () => {
                   {loading ? "Sending OTP..." : "Change Password"}
                 </button>
               </li>
-        <li>
-        <button
+              <li>
+                <button
                   onClick={logout}
                   className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-500"
                 >
                   Logout
                 </button>
-        </li>
-      </ul>
-    </div>
-  </div>
-</div>
-</div>
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
+    </header>
   );
 };
 

@@ -3,6 +3,12 @@ import { create } from 'zustand';
 const useAuthStore = create((set) => ({
   role: localStorage.getItem('role') || '', // Load from localStorage
   isAuthenticated: localStorage.getItem('isAuthenticated') === 'true', // Check if already authenticated
+  eligible: localStorage.getItem('eligible') === 'true',
+
+  setEligible: (elig)=>{
+    set({ elig });
+    localStorage.setItem('eligible', elig); // Save to localStorage
+  },
 
   setAuth: (role) => {
     set({ role, isAuthenticated: true });

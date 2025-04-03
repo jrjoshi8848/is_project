@@ -234,9 +234,9 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
   try {
     // Get student ID from the authenticated user
     const studentId = req.user.id;
-    
+
     // Get details from the request body
-    const { cz_no, type, issued_date, issued_district } = req.body;
+    const { citizenship_number, type, issued_date, issued_district, front, back } = req.body;
 
     // Find existing citizenship record for the student
     let citizenship = await Citizenship.findOne({ where: { student_id: studentId } });
@@ -244,63 +244,93 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
     const frontImage = req.files?.front ? req.files.front[0] : null;
     const backImage = req.files?.back ? req.files.back[0] : null;
 
-    if(!frontImage || !backImage){
-      console.log("missing images")
-      return res.status(400).json({message:"Missing images."})
+    if((!front && !frontImage)||(back && backImage)){
+      console.log("Missing images")
+      return res.status(400).json({message:"Missing Images"})
     }
 
-
-    if (citizenship) {
-      // Update existing details
-      citizenship.citizenship_number = cz_no;
-      citizenship.type = type;
-      citizenship.issued_date = issued_date;
-      citizenship.issued_district = issued_district;
-      await citizenship.save();
-
-      var existingImages = await Images.findAll({
-        where: { imageable_type: 'Citizenship', imageable_id: citizenship.id },
-      });
-
-      
-    } else {
-      // ✅ If citizenship does not exist, create a new one
+    if (!citizenship) {
+      // If citizenship does not exist, create a new one
       citizenship = await Citizenship.create({
         student_id: studentId,
-        citizenship_number:cz_no,
+        citizenship_number,
         type,
         issued_date,
         issued_district,
       });
     }
 
+    // Update citizenship details
+    citizenship.citizenship_number = citizenship_number;
+    citizenship.type = type;
+    citizenship.issued_date = issued_date;
+    citizenship.issued_district = issued_district;
+    await citizenship.save();
+
+    // Fetch existing images if any
+    const existingImages = await Images.findAll({
+      where: { imageable_type: 'Citizenship', imageable_id: citizenship.id },
+    });
+
+
+
+    // Handle front image update
     if (frontImage) {
-      const existingfront = existingImages.find(image => image.url.includes('citizenship_front'));
-      if (existingfront) {
-        await destroyFromCloudinary(existingfront.url); 
-        await existingfront.destroy(); 
+      const existingFront = existingImages.find(image => image.url.includes('citizenship_front'));
+      if (existingFront) {
+        // Destroy the old front image from Cloudinary
+        await destroyFromCloudinary(existingFront.url);
+        await existingFront.destroy();
+      }
+      
+      // Upload new front image to Cloudinary
       const frontImageResult = await uploadToCloudinary(frontImage.buffer, `citizenship_front_${studentId}`);
       await Images.create({
         imageable_type: 'Citizenship',
         imageable_id: citizenship.id,
         url: frontImageResult.secure_url,
       });
-    }};
+    } else if (front) {
+      // If no front image uploaded, keep existing Cloudinary URL if not changed
+      const existingFront = existingImages.find(image => image.url.includes('citizenship_front'));
+      if (!existingFront) {
+        // If no image exists, add the existing URL
+        await Images.create({
+          imageable_type: 'Citizenship',
+          imageable_id: citizenship.id,
+          url: front,
+        });
+      }
+    }
 
-
+    // Handle back image update
     if (backImage) {
-      const existingback = existingImages.find(image => image.url.includes('citizenship_back'));
-      if (existingback) {
-        await destroyFromCloudinary(existingback.url); 
-        await existingback.destroy();
+      const existingBack = existingImages.find(image => image.url.includes('citizenship_back'));
+      if (existingBack) {
+        // Destroy the old back image from Cloudinary
+        await destroyFromCloudinary(existingBack.url);
+        await existingBack.destroy();
+      }
+
+      // Upload new back image to Cloudinary
       const backImageResult = await uploadToCloudinary(backImage.buffer, `citizenship_back_${studentId}`);
       await Images.create({
         imageable_type: 'Citizenship',
         imageable_id: citizenship.id,
         url: backImageResult.secure_url,
       });
+    } else if (back) {
+      // If no back image uploaded, keep existing Cloudinary URL if not changed
+      const existingBack = existingImages.find(image => image.url.includes('citizenship_back'));
+      if (!existingBack) {
+        // If no image exists, add the existing URL
+        await Images.create({
+          imageable_type: 'Citizenship',
+          imageable_id: citizenship.id,
+          url: back,
+        });
+      }
     }
-  };
 
     // ✅ Return response
     return res.status(200).json({
@@ -316,88 +346,121 @@ export const createOrUpdateCitizenshipDetails = async (req, res, next) => {
 
 
 
+
 export const createOrUpdatePreviousEducation = async (req, res, next) => {
   try {
     const studentId = req.user.id;
-    const { institutionName,boardName, degree, graduationYear, cgpa } = req.body;
+    const { institutionName, boardName, degree, graduationYear, cgpa, transcript, cc } = req.body;
 
-    let prevEducation = await PreviousEducation.findOne({
-      where: { student_id: studentId, degree: degree }
-    });
+    // Find existing record using student_id and degree
+    let prevEducation = await PreviousEducation.findOne({ where: { student_id: studentId, degree } });
 
-    const transcript = req.files?.transcript ? req.files.transcript[0]:null;
-    const cc = req.files?.cc ? req.files.cc[0] :null;
+    // Get uploaded files (if any)
+    const transcriptFile = req.files?.transcript ? req.files.transcript[0] : null;
+    const ccFile = req.files?.cc ? req.files.cc[0] : null;
+    console.log(degree)
 
-    if(!prevEducation && (!cc || ! transcript)){
-      console.log("missing docs")
-      return res.status(400).json({message:"Missing docs."})
+    if(prevEducation && prevEducation.degree == degree && prevEducation.boardName==boardName){
+      console.log("Duplicate Entry");
+      return res.status(400).json({ message: "Duplicate Entry" });
+    }
+
+    // If no existing record and no uploaded files, return error
+    if (!prevEducation && (!ccFile || !transcriptFile) && (!transcript || !cc)) {
+      console.log("Missing documents");
+      return res.status(400).json({ message: "Missing documents." });
+    }
+    
+    
+    // Fetch existing images from DB (if record exists)
+    let existingImages = [];
+    if (prevEducation) {
+      existingImages = await Images.findAll({
+        where: { imageable_type: "PreviousEducation", imageable_id: prevEducation.id },
+      });
     }
 
     if (prevEducation) {
+      // Update existing record
       prevEducation.institutionName = institutionName;
-      prevEducation.boardName=boardName;
+      prevEducation.boardName = boardName;
       prevEducation.graduationYear = graduationYear;
       prevEducation.cgpa = cgpa;
       await prevEducation.save();
-
-      
-      const existingImages = await Images.findAll({
-        where: { imageable_type: 'PreviousEducation', imageable_id: prevEducation.id },
-      });
-
-      if (transcript) {
-        const existingTranscript = existingImages.find(image => image.url.includes('transcript'));
-        if (existingTranscript) {
-          await destroyFromCloudinary(existingTranscript.url); 
-          await existingTranscript.destroy(); 
-        }
-      }
-
-      if (cc) {
-        const existingCC = existingImages.find(image => image.url.includes('cc'));
-        if (existingCC) {
-          await destroyFromCloudinary(existingCC.url); 
-          await existingCC.destroy(); 
-        }
-      }
     } else {
+      // Create new record
       prevEducation = await PreviousEducation.create({
         student_id: studentId,
         institutionName,
         boardName,
         degree,
         graduationYear,
-        cgpa
+        cgpa,
       });
     }
 
-    if (transcript) {
-      const transcriptResult = await uploadToCloudinary(transcript.buffer, `transcript_${studentId}`);
+    // Handle transcript image update
+    if (transcriptFile) {
+      const existingTranscript = existingImages.find((image) => image.url.includes("transcript"));
+      if (existingTranscript) {
+        await destroyFromCloudinary(existingTranscript.url);
+        await existingTranscript.destroy();
+      }
+
+      const transcriptResult = await uploadToCloudinary(transcriptFile.buffer, `transcript_${studentId}`);
       await Images.create({
-        imageable_type: 'PreviousEducation',
+        imageable_type: "PreviousEducation",
         imageable_id: prevEducation.id,
         url: transcriptResult.secure_url,
       });
+    } else if (transcript) {
+      // Preserve existing Cloudinary URL if no new file is uploaded
+      const existingTranscript = existingImages.find((image) => image.url.includes("transcript"));
+      if (!existingTranscript) {
+        await Images.create({
+          imageable_type: "PreviousEducation",
+          imageable_id: prevEducation.id,
+          url: transcript,
+        });
+      }
     }
 
-    if (cc) {
-      const ccResult = await uploadToCloudinary(cc.buffer, `cc_${studentId}`);
+    // Handle character certificate (cc) image update
+    if (ccFile) {
+      const existingCC = existingImages.find((image) => image.url.includes("cc"));
+      if (existingCC) {
+        await destroyFromCloudinary(existingCC.url);
+        await existingCC.destroy();
+      }
+
+      const ccResult = await uploadToCloudinary(ccFile.buffer, `cc_${studentId}`);
       await Images.create({
-        imageable_type: 'PreviousEducation',
+        imageable_type: "PreviousEducation",
         imageable_id: prevEducation.id,
         url: ccResult.secure_url,
       });
+    } else if (cc) {
+      // Preserve existing Cloudinary URL if no new file is uploaded
+      const existingCC = existingImages.find((image) => image.url.includes("cc"));
+      if (!existingCC) {
+        await Images.create({
+          imageable_type: "PreviousEducation",
+          imageable_id: prevEducation.id,
+          url: cc,
+        });
+      }
     }
 
     return res.status(200).json({
-      message: 'Previous education details saved successfully',
+      message: "Previous education details saved successfully",
       data: prevEducation,
     });
   } catch (error) {
-    console.error('Error in createOrUpdatePreviousEducation:', error);
+    console.error("Error in createOrUpdatePreviousEducation:", error);
     next(error);
   }
 };
+
 
 
 
@@ -406,8 +469,8 @@ export const createOrUpdateForm = async (req, res, next) => {
     const studentId = req.user.id;
     const { women, madheshi, dalit, adibashi_janjati, backward_region, disabled, district_quota,
        district, staff_quota, voucher_no } = req.body;
-    console.log({ women, madheshi, dalit, adibashi_janjati, backward_region, disabled, district_quota,
-      district, staff_quota, voucher_no })
+    //console.log({ women, madheshi, dalit, adibashi_janjati, backward_region, disabled, district_quota,
+      //district, staff_quota, voucher_no })
 
     let form = await Form.findOne({
       where: { student_id: studentId },
@@ -436,8 +499,11 @@ export const createOrUpdateForm = async (req, res, next) => {
     }
 
     
-     if(((disabled=='true'|| disabled =='1' )&& !req.files.disabled_image)||((staff_quota ==true || staff_quota=='1') && !req.files.staff_image)){
+     if(((disabled=='true'|| disabled =='1' )&& !req.files.disabled_image)||((staff_quota == true || staff_quota=='1') && !req.files.staffImage)){
        return res.status(400).json({ message: 'Please add all the proofs.' });
+     }
+     if(district_quota && !district){
+      return res.status(400).json({ message: 'Missing Field' });
      }
 
     if (form) {
@@ -491,7 +557,7 @@ export const createOrUpdateForm = async (req, res, next) => {
         url: voucherResult.secure_url,
       });
     }
-
+   let existingImages=[]
     // Handle and delete previous disabled image if any
     if (disabled && req.files?.disabled_image) {
       const disabledImage = req.files.disabled_image[0];
@@ -513,8 +579,8 @@ export const createOrUpdateForm = async (req, res, next) => {
     }
 
     // Handle and delete previous staff image if any
-    if (staff_quota && req.files?.staff_image) {
-      const staffImage = req.files.staff_image[0];
+    if (staff_quota && req.files?.staffImage) {
+      const staffImage = req.files.staffImage[0];
       const existingStaffImage = existingImages.find(image => image.url.includes('staff'));
 
       // If an existing staff image is found, delete it before uploading the new one
