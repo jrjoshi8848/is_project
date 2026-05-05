@@ -128,28 +128,57 @@ const FieldRenderer = ({ data }) => {
     </div>
   );
 
-  const renderImageField = (label, image) => (
-    <div className="flex items-center space-x-4">
-      <div className="font-medium text-gray-700">{label}:</div>
+  const renderImageField = (label, image, key) => {
+    const isProfilePicture = key === "pp"; // Check if it's the profile picture field
+  
+    return (
       <div className="relative">
-        {image ? (
-          <img
-            src={image}
-            alt={label}
-            className="object-contain max-w-full max-h-64 border"
-          />
+        {/* Render the profile picture at the top-right corner */}
+        {isProfilePicture && image && (
+          <div className="absolute top-0 right-0">
+            <img
+              src={image}
+              className="object-contain w-20 h-20 rounded-full border"
+              alt={label}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "200px", // Adjusted height for image positioning
+              }}
+            />
+          </div>
+        )}
+  
+        {/* For non-profile picture images, render them as normal */}
+        {!isProfilePicture && image ? (
+          <div>
+            <img
+              src={image}
+              className="object-contain border"
+              style={{
+                maxWidth: "100%",
+                maxHeight: "400px",
+              }}
+              alt={label}
+            />
+          </div>
         ) : (
           <div className="text-gray-600">No image available</div>
         )}
+  
+        {/* Always render the label */}
+        <div className="flex flex-col items-center">
+          <label className="block text-xl font-large text-gray-700">{label}</label>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+  
 
   return (
     <div className="space-y-4">
       {Object.entries(data).map(([key, value], index) => {
         // Skip fields like 'id'
-        if (key === "id") return null;
+        if (key === "id" || key==="user_id") return null;
 
         // Render field label and value
         const label = fieldLabels[key] || key; // Use mapped label if available, otherwise use the key
@@ -168,7 +197,6 @@ const FieldRenderer = ({ data }) => {
   const FormDetails = ({ basicDetails, citizenship, prevEducation }) => {
     return (
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Form Details</h2>
   
         <div className="space-y-6">
           {/* Render Basic Details */}
