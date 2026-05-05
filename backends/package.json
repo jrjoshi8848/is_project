@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack",
-    "sync": "node sync.js"
+    "sync": "node sync.js",
+    "createadmin": "node createAdmin.js"
   },
   "keywords": [],
   "author": "",

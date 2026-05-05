@@ -17,7 +17,8 @@ export const getBasicDetails = async (req, res, next) => {
       });
 
       // Extract image URLs from associated images
-      const imageUrl = existingImages.url;
+      let imageUrl;
+      existingImages ? imageUrl = existingImages.url : null;
   
       return res.status(200).json({
         message: 'Basic details fetched successfully.',
@@ -27,12 +28,13 @@ export const getBasicDetails = async (req, res, next) => {
           role: basicDetails.role,
           first_name: basicDetails.first_name,
           middle_name: basicDetails.middle_name,
-          last: basicDetails.last_name,
+          last_name: basicDetails.last_name,
           phone: basicDetails.phone,
           DOB: basicDetails.DOB,
           temporary_address: basicDetails.temporary_address,
           permanent_address: basicDetails.permanent_address,
           sex:basicDetails.sex,
+          fathers_name:basicDetails.fathers_name,
           grandfathers_name: basicDetails.grandfathers_name,
           mothers_name:basicDetails.mothers_name,
           fathers_profession:basicDetails.fathers_profession,
@@ -96,7 +98,7 @@ export const getPreviousEducationDetails = async (req, res, next) => {
     }
     if (prevEducation) {
       prevEducation = prevEducation.map((item) => item.toJSON());
-      console.log(prevEducation); // Logs an array of plain JSON objects
+      //console.log(prevEducation); // Logs an array of plain JSON objects
     }
     //console.log(prevEducation)
     for(var prev of prevEducation){
@@ -157,7 +159,7 @@ export const getFullFormDetails = async (req, res, next) => {
     });
     basicDetails=basicDetails.toJSON();
     basicDetails.pp=ppImage.url;
-    console.log("basicDetails :",basicDetails)
+    //console.log("basicDetails :",basicDetails)
 
 
     let citizenship = await Citizenship.findOne({
@@ -175,7 +177,7 @@ export const getFullFormDetails = async (req, res, next) => {
     citizenship=citizenship.toJSON();
     citizenship.front=front.url;
     citizenship.back=back.url;
-    console.log(citizenship)
+    //console.log(citizenship)
 
 
     let prevEducation = await PreviousEducation.findAll({
@@ -187,7 +189,7 @@ export const getFullFormDetails = async (req, res, next) => {
     }
     if (prevEducation) {
       prevEducation = prevEducation.map((item) => item.toJSON());
-      console.log(prevEducation); // Logs an array of plain JSON objects
+      //console.log(prevEducation); // Logs an array of plain JSON objects
     }
     //console.log(prevEducation)
     for(var prev of prevEducation){
@@ -201,9 +203,8 @@ export const getFullFormDetails = async (req, res, next) => {
     const cc = images.find(image => image.url.includes('cc'));
     prev.cc=cc.url;
   }
-  console.log(prevEducation)
-
-
+  //console.log(prevEducation)
+  
     return res.status(200).json({
       message: 'Full form details fetched successfully.',
       form: form,
@@ -216,3 +217,25 @@ export const getFullFormDetails = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getFormEligibality=async(req,res,next)=>{
+  try{
+  const studentId = req.user.id;
+  //const user= await Student.findOne({where: { student_id: studentId }});
+  const prevEdu=await PreviousEducation.findAll({where:{student_id:studentId}});
+  const basicDet=await BasicDetails.findOne({where:{user_id:studentId}});
+  const citizenship=await Citizenship.findOne({where:{student_id:studentId}});
+ 
+  let eligible=false;
+  if(basicDet && prevEdu.length>1 && citizenship)
+    eligible=true;
+
+  console.log(eligible)
+  return res.status(200).json({
+    message:"Eligibality Fetched Successfully",
+    eligible,
+  });
+}catch(error){
+  console.log(error)
+  next(error);
+}}

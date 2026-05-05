@@ -11,45 +11,44 @@ const validateEmail = (email) => {
 
 export const sendOtpReg = async (email) => {
   try {
-
-    // Validate email
+    // 1. Validate email
     if (!validateEmail(email)) {
-      return res.status(400).json({ message: 'Invalid email format' });
+      throw new Error('Invalid email format'); 
     }
 
-    // Check if user exists with the given email
+    // 2. Find the user (Student or Admin)
     const user = await Student.findOne({ where: { email } }) || await Admin.findOne({ where: { email } });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      throw new Error('User not found'); 
     }
 
-    // Send OTP email
+    // 3. Generate OTP (replace with your actual OTP generation logic)
     const otp = await sendOtpEmail(email);
 
+    // 4. Send OTP email (replace with your actual email sending logic)
+     
 
-    // Store OTP in the database associated with the student
+    // 5. Store or update OTP in the database
     let otpInstance = await OTP.findOne({ where: { user_id: user.id } });
 
     if (otpInstance) {
-      // If OTP exists, update it
       otpInstance.otp = otp;
       otpInstance.created_at = new Date();
-      otpInstance.isUsed=false;
+      otpInstance.isUsed = false;
       await otpInstance.save();
     } else {
-      // If OTP does not exist, create a new one
       await OTP.create({
-        user_id: user.id, // Associate OTP with the user
+        user_id: user.id,
         otp: otp,
         created_at: new Date(),
       });
     }
-    console.log(otp)
-    return otp;
+
+    return { success: true, otp: otp }; 
 
   } catch (error) {
     console.error('Error sending OTP:', error);
-    next(error); // Pass error to error handler
+    return { success: false, error: error.message }; 
   }
 };

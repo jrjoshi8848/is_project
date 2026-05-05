@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt'; // Add bcrypt for password hashing
 
 const Student = sequelize.define('Student', {
   id: { type: DataTypes.BIGINT, autoIncrement: true, primaryKey: true },
+  username:{type: DataTypes.STRING, allowNull: false, unique: true, },
   email: { 
     type: DataTypes.STRING, 
     allowNull: false, 

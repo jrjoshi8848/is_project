@@ -7,3 +7,5 @@ frontend/node_modules
 backends/config/config.json
 
 instruct.md
+
+repomix-output.xml

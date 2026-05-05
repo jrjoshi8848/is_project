@@ -75,12 +75,13 @@ Form.hasMany(Images, {
 });
 
 // Previous Education and Student
-PreviousEducation.hasMany(Student, { foreignKey: 'student_id' });
-Student.belongsTo(PreviousEducation, { foreignKey: 'student_id' });
+Student.hasMany(PreviousEducation, { foreignKey: 'student_id' });
+PreviousEducation.belongsTo(Student, { foreignKey: 'student_id' });
+
 
 // Citizenship and Student
-Citizenship.hasOne(Student, { foreignKey: 'student_id' });
-Student.belongsTo(Citizenship, { foreignKey: 'student_id' });
+Citizenship.belongsTo(Student, { foreignKey: 'student_id' });
+Student.hasOne(Citizenship, { foreignKey: 'student_id' });
 
 // OTP and Student
 Student.hasOne(OTP, { foreignKey: 'user_id' });
